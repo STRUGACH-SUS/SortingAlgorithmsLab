@@ -29,6 +29,13 @@ public enum ArrayStepKind
     Phase,
     PassCompleted,
     TreeUpdated,
+    Split,
+    MergeLeaf,
+    MergeStart,
+    MergeSelect,
+    MergeWrite,
+    MergeCopyBack,
+    MergeComplete,
     Completed
 }
 
@@ -50,6 +57,14 @@ public sealed record ArraySortStep : DemoStep
 
     public int? PositionIndex { get; init; }
 
+    public int? RangeStart { get; init; }
+
+    public int? RangeMid { get; init; }
+
+    public int? RangeEnd { get; init; }
+
+    public MergeLevelsSnapshot? MergeLevels { get; init; }
+
     public override bool IsInitial => Kind == ArrayStepKind.Initial;
 
     public override bool IsCompleted => Kind == ArrayStepKind.Completed;
@@ -65,6 +80,13 @@ public sealed record ArraySortStep : DemoStep
         ArrayStepKind.Phase => "Фаза",
         ArrayStepKind.PassCompleted => "Проход завершён",
         ArrayStepKind.TreeUpdated => "Дерево",
+        ArrayStepKind.Split => "Разделение",
+        ArrayStepKind.MergeLeaf => "Часть отсортирована",
+        ArrayStepKind.MergeStart => "Начало слияния",
+        ArrayStepKind.MergeSelect => "Выбор элемента",
+        ArrayStepKind.MergeWrite => "Запись в буфер",
+        ArrayStepKind.MergeCopyBack => "Возврат в массив",
+        ArrayStepKind.MergeComplete => "Слияние завершено",
         ArrayStepKind.Completed => "Сортировка завершена",
         _ => "Операция"
     };
@@ -88,6 +110,21 @@ public sealed record ArraySortStep : DemoStep
                 return PositionIndex < 0
                     ? "Начало массива"
                     : $"Позиция: {PositionIndex}";
+            }
+
+            if (RangeStart is not null && RangeEnd is not null)
+            {
+                return Kind == ArrayStepKind.MergeStart && RangeMid is not null
+                    ? $"Диапазон [{RangeStart}–{RangeMid}] + [{RangeMid + 1}–{RangeEnd}]"
+                    : $"Диапазон [{RangeStart}–{RangeEnd}]";
+            }
+
+            if (Kind is ArrayStepKind.MergeWrite or ArrayStepKind.MergeCopyBack
+                && ResultIndex is not null && ResultValue is not null)
+            {
+                return Kind == ArrayStepKind.MergeWrite
+                    ? $"Буфер[{ResultIndex}] = {ResultValue}"
+                    : $"Массив[{ResultIndex}] = {ResultValue}";
             }
 
             if (Kind == ArrayStepKind.Write && ResultIndex is not null && ResultValue is not null)

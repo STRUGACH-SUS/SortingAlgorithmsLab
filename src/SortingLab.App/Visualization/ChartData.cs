@@ -7,7 +7,10 @@ public enum BarState
     Active,
     Sorted,
     Excluded,
-    Result
+    Result,
+    Range,
+    LeftRange,
+    RightRange
 }
 
 public readonly record struct BarDatum(int Value, BarState State, int Index = -1);

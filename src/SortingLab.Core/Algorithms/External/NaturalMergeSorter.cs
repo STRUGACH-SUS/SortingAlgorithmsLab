@@ -9,34 +9,16 @@ using SortingLab.Core.Services;
 
 namespace SortingLab.Core.Algorithms.External;
 
-public enum ExternalMergeMode
-{
-    Natural,
-    Direct
-}
-
 /// <summary>
-/// Внешнее слияние с реальными временными файлами.
-/// В режиме Natural ищутся естественные серии, в режиме Direct файл
-/// принудительно разбивается на серии по одному элементу.
+/// Естественное слияние с реальными временными файлами.
 /// </summary>
 public sealed class NaturalMergeSorter : IExternalSortAlgorithm
 {
     private const int PreviewSize = 8;
-    private readonly ExternalMergeMode _mode;
     private int _runCounter;
     private string _tempDirectory = string.Empty;
 
-    public NaturalMergeSorter(ExternalMergeMode mode = ExternalMergeMode.Natural)
-    {
-        _mode = mode;
-    }
-
-    public AlgorithmDescriptor Descriptor => _mode == ExternalMergeMode.Natural
-        ? NaturalDescriptor
-        : DirectDescriptor;
-
-    public static AlgorithmDescriptor NaturalDescriptor { get; } = new(
+    public AlgorithmDescriptor Descriptor { get; } = new(
         Id: "natural-merge-external",
         Name: "Natural Merge Sort",
         Category: "Внешняя сортировка",
@@ -46,17 +28,6 @@ public sealed class NaturalMergeSorter : IExternalSortAlgorithm
         TimeComplexity: "O(n log R) сравнений и файлового ввода-вывода, где R — число естественных серий",
         SpaceComplexity: "O(1) записей в буферах слияния; метаданные серий",
         Features: "Устойчива, использует уже существующий порядок, не изменяет исходный CSV, удаляет временные файлы после работы.");
-
-    public static AlgorithmDescriptor DirectDescriptor { get; } = new(
-        Id: "external-merge",
-        Name: "External Merge Sort",
-        Category: "Внешняя сортировка",
-        ShortDescription: "Прямое внешнее слияние: файл разбивается на серии по одному элементу, затем серии попарно сливаются.",
-        Idea: "Прямое слияние не ищет уже готовые серии. Оно принудительно разбивает файл на минимальные серии, а затем многократно сливает соседние серии во временные файлы.",
-        Principle: "Каждая запись сначала образует отдельную серию. Серии попарно сливаются в новые файлы, пока не останется одна упорядоченная серия. При равенстве ключей выбирается левая запись — порядок сохраняется.",
-        TimeComplexity: "O(n log n) сравнений и файлового ввода-вывода",
-        SpaceComplexity: "O(1) записей в буферах слияния; серии хранятся в файлах",
-        Features: "Устойчива, не зависит от исходного порядка, использует реальные временные файлы, удаляет их после работы.");
 
     public async Task<ExternalSortResult> SortAsync(
         ExternalSortRequest request,
@@ -92,7 +63,7 @@ public sealed class NaturalMergeSorter : IExternalSortAlgorithm
             {
                 Kind = ExternalStepKind.Initial,
                 Title = "Исходная таблица",
-                Explanation = $"{Descriptor.Name}: записей {request.Records.Count}. Ключевой столбец: «{keyName}», сортировка {directionText}.",
+                Explanation = $"Записей: {request.Records.Count}. Ключевой столбец: «{keyName}», сортировка {directionText}.",
                 Runs = Array.Empty<ExternalRunInfo>(),
                 PassNumber = 0
             }, cancellationToken);
@@ -126,25 +97,18 @@ public sealed class NaturalMergeSorter : IExternalSortAlgorithm
                 FileName = Path.GetFileName(inputPath)
             }, cancellationToken);
 
-            var runs = _mode == ExternalMergeMode.Natural
-                ? await DetectRunsAsync(inputPath, comparer, context, cancellationToken)
-                : await DetectDirectRunsAsync(inputPath, comparer, context, cancellationToken);
+            var runs = await DetectRunsAsync(inputPath, comparer, context, cancellationToken);
             var initialRunCount = runs.Count;
             var passCount = 0;
 
             await context.EmitAsync(new ExternalSortStep
             {
                 Kind = ExternalStepKind.RunsCompleted,
-                Title = _mode == ExternalMergeMode.Natural
-                    ? "Естественные серии определены"
-                    : "Серии для прямого слияния созданы",
-                Explanation = _mode == ExternalMergeMode.Natural
-                    ? $"Найдено серий: {runs.Count}. " +
-                      (runs.Count == 1
-                          ? "Весь файл уже образует одну упорядоченную серию, слияние не требуется."
-                          : "Теперь соседние серии будут попарно сливаться.")
-                    : $"Файл разбит на серии по одному элементу: {runs.Count}. " +
-                      "Теперь соседние серии будут попарно сливаться.",
+                Title = "Естественные серии определены",
+                Explanation = $"Найдено серий: {runs.Count}. " +
+                              (runs.Count == 1
+                                  ? "Весь файл уже образует одну упорядоченную серию, слияние не требуется."
+                                  : "Теперь соседние серии будут попарно сливаться."),
                 Runs = runs.Select(run => run.ToInfo()).ToArray(),
                 PassNumber = 0
             }, cancellationToken);
@@ -327,38 +291,6 @@ public sealed class NaturalMergeSorter : IExternalSortAlgorithm
         return runs;
     }
 
-    private async Task<List<TempRun>> DetectDirectRunsAsync(
-        string inputPath,
-        SortKeyComparer comparer,
-        ExternalSortContext context,
-        CancellationToken cancellationToken)
-    {
-        var runs = new List<TempRun>();
-        var position = 0;
-
-        await context.EmitAsync(new ExternalSortStep
-        {
-            Kind = ExternalStepKind.Scan,
-            Title = "Разбиение на серии",
-            Explanation = "Прямое слияние не ищет готовый порядок: каждая запись становится отдельной начальной серией.",
-            Runs = Array.Empty<ExternalRunInfo>(),
-            PassNumber = 0
-        }, cancellationToken);
-
-        await foreach (var record in ReadTempRecordsAsync(inputPath, cancellationToken))
-        {
-            cancellationToken.ThrowIfCancellationRequested();
-            context.CountRead();
-
-            var run = StartRun(position, record, comparer);
-            await WriteRunRecordAsync(run, record, comparer, context, cancellationToken);
-            await FinishRunAsync(run, runs, context, cancellationToken);
-            position++;
-        }
-
-        return runs;
-    }
-
     private TempRun StartRun(int startIndex, CsvRecord firstRecord, SortKeyComparer comparer)
     {
         var number = ++_runCounter;
@@ -396,7 +328,7 @@ public sealed class NaturalMergeSorter : IExternalSortAlgorithm
         }
     }
 
-    private async Task FinishRunAsync(
+    private static async Task FinishRunAsync(
         TempRun run,
         List<TempRun> runs,
         ExternalSortContext context,
@@ -409,12 +341,8 @@ public sealed class NaturalMergeSorter : IExternalSortAlgorithm
         await context.EmitAsync(new ExternalSortStep
         {
             Kind = ExternalStepKind.RunDetected,
-            Title = _mode == ExternalMergeMode.Natural
-                ? $"Найдена серия #{run.Number}"
-                : $"Создана серия #{run.Number}",
-            Explanation = _mode == ExternalMergeMode.Natural
-                ? $"Серия #{run.Number}: записей {run.Count}, диапазон {run.StartIndex}–{run.EndIndex}, ключи от «{run.FirstKey}» до «{run.LastKey}»."
-                : $"Прямое слияние: серия #{run.Number} из одного элемента, ключ «{run.FirstKey}».",
+            Title = $"Найдена серия #{run.Number}",
+            Explanation = $"Серия #{run.Number}: записей {run.Count}, диапазон {run.StartIndex}–{run.EndIndex}, ключи от «{run.FirstKey}» до «{run.LastKey}».",
             Runs = runs.Select(item => item.ToInfo()).ToArray(),
             PassNumber = 0
         }, cancellationToken);

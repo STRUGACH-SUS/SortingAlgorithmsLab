@@ -10,70 +10,101 @@
             Background="{DynamicResource SurfaceBrush}"
             BorderBrush="{DynamicResource BorderBrush}"
             BorderThickness="0,0,1,0">
-      <StackPanel Margin="16,22,16,18" Spacing="5">
-        <TextBlock Text="РАЗДЕЛЫ" Classes="eyebrow" Margin="12,0,0,4" />
-
-        <Button Classes="nav"
-                Classes.selected="{Binding IsInternalSelected}"
-                Command="{Binding NavigateCommand}"
-                CommandParameter="internal">
-          <Grid ColumnDefinitions="22,*" ColumnSpacing="10">
-            <Path Grid.Column="0"
-                  Data="M4 20 V11 H7 V20 Z M9 20 V4 H12 V20 Z M14 20 V14 H17 V20 Z"
-                  Fill="{Binding $parent[Button].Foreground}"
-                  Stretch="Uniform"
-                  Width="15"
-                  Height="15"
-                  VerticalAlignment="Center" />
-            <StackPanel Grid.Column="1" Spacing="1">
-              <TextBlock Text="Внутренняя сортировка" FontSize="13" />
-              <TextBlock Text="Odd-Even · Tournament · Gnome" Classes="caption" FontSize="10" />
+      <Grid RowDefinitions="Auto,*,Auto" Margin="16,22,16,18">
+        <StackPanel Spacing="18">
+          <StackPanel Orientation="Horizontal" Spacing="10" Margin="6,0,0,14">
+            <Border Width="36" Height="36" CornerRadius="10" Background="{DynamicResource AccentBrush}">
+              <Path Data="M7 21 V11 H10 V21 Z M12 21 V5 H15 V21 Z M17 21 V14 H20 V21 Z"
+                    Fill="White"
+                    Stretch="Uniform"
+                    Width="17"
+                    Height="17"
+                    HorizontalAlignment="Center"
+                    VerticalAlignment="Center" />
+            </Border>
+            <StackPanel VerticalAlignment="Center" Spacing="1">
+              <TextBlock Text="Лаборатория" FontSize="16" FontWeight="SemiBold" />
+              <TextBlock Text="сортировок" Classes="caption" />
             </StackPanel>
-          </Grid>
-        </Button>
+          </StackPanel>
 
-        <Button Classes="nav"
-                Classes.selected="{Binding IsExternalSelected}"
-                Command="{Binding NavigateCommand}"
-                CommandParameter="external">
-          <Grid ColumnDefinitions="22,*" ColumnSpacing="10">
-            <Path Grid.Column="0"
-                  Data="M4 5 H20 V19 H4 Z M4 9 H20 M8 5 V19"
-                  Stroke="{Binding $parent[Button].Foreground}"
-                  StrokeThickness="1.5"
-                  Fill="Transparent"
-                  Stretch="Uniform"
-                  Width="15"
-                  Height="15"
-                  VerticalAlignment="Center" />
-            <StackPanel Grid.Column="1" Spacing="1">
-              <TextBlock Text="Внешняя сортировка" FontSize="13" />
-              <TextBlock Text="Natural · External Merge" Classes="caption" FontSize="10" />
-            </StackPanel>
-          </Grid>
-        </Button>
+          <StackPanel Spacing="5">
+            <TextBlock Text="РАЗДЕЛЫ" Classes="eyebrow" Margin="12,0,0,4" />
 
-        <Button Classes="nav"
-                Classes.selected="{Binding IsTextSelected}"
-                Command="{Binding NavigateCommand}"
-                CommandParameter="text">
-          <Grid ColumnDefinitions="22,*" ColumnSpacing="10">
-            <Path Grid.Column="0"
-                  Data="M4 6 H20 M4 11 H20 M4 16 H14"
-                  Stroke="{Binding $parent[Button].Foreground}"
-                  StrokeThickness="1.7"
-                  Fill="Transparent"
-                  Stretch="Uniform"
-                  Width="15"
-                  Height="15"
-                  VerticalAlignment="Center" />
-            <StackPanel Grid.Column="1" Spacing="1">
-              <TextBlock Text="Текст и эксперименты" FontSize="13" />
-              <TextBlock Text="QuickSort · Radix Sort" Classes="caption" FontSize="10" />
+            <Button Classes="nav"
+                    Classes.selected="{Binding IsInternalSelected}"
+                    Command="{Binding NavigateCommand}"
+                    CommandParameter="internal">
+              <Grid ColumnDefinitions="22,*" ColumnSpacing="10">
+                <Path Grid.Column="0"
+                      Data="M4 20 V11 H7 V20 Z M9 20 V4 H12 V20 Z M14 20 V14 H17 V20 Z"
+                      Fill="{Binding $parent[Button].Foreground}"
+                      Stretch="Uniform"
+                      Width="15"
+                      Height="15"
+                      VerticalAlignment="Center" />
+                <StackPanel Grid.Column="1" Spacing="1">
+                  <TextBlock Text="Внутренняя сортировка" FontSize="13" />
+                  <TextBlock Text="Odd-Even · Tournament" Classes="caption" FontSize="10" />
+                </StackPanel>
+              </Grid>
+            </Button>
+
+            <Button Classes="nav"
+                    Classes.selected="{Binding IsExternalSelected}"
+                    Command="{Binding NavigateCommand}"
+                    CommandParameter="external">
+              <Grid ColumnDefinitions="22,*" ColumnSpacing="10">
+                <Path Grid.Column="0"
+                      Data="M4 5 H20 V19 H4 Z M4 9 H20 M8 5 V19"
+                      Stroke="{Binding $parent[Button].Foreground}"
+                      StrokeThickness="1.5"
+                      Fill="Transparent"
+                      Stretch="Uniform"
+                      Width="15"
+                      Height="15"
+                      VerticalAlignment="Center" />
+                <StackPanel Grid.Column="1" Spacing="1">
+                  <TextBlock Text="Внешняя сортировка" FontSize="13" />
+                  <TextBlock Text="Natural Merge · файлы" Classes="caption" FontSize="10" />
+                </StackPanel>
+              </Grid>
+            </Button>
+
+            <Button Classes="nav"
+                    Classes.selected="{Binding IsTextSelected}"
+                    Command="{Binding NavigateCommand}"
+                    CommandParameter="text">
+              <Grid ColumnDefinitions="22,*" ColumnSpacing="10">
+                <Path Grid.Column="0"
+                      Data="M4 6 H20 M4 11 H20 M4 16 H14"
+                      Stroke="{Binding $parent[Button].Foreground}"
+                      StrokeThickness="1.7"
+                      Fill="Transparent"
+                      Stretch="Uniform"
+                      Width="15"
+                      Height="15"
+                      VerticalAlignment="Center" />
+                <StackPanel Grid.Column="1" Spacing="1">
+                  <TextBlock Text="Текст и эксперименты" FontSize="13" />
+                  <TextBlock Text="QuickSort · Radix Sort" Classes="caption" FontSize="10" />
+                </StackPanel>
+              </Grid>
+            </Button>
+          </StackPanel>
+        </StackPanel>
+
+        <StackPanel Grid.Row="2" Spacing="8">
+          <Border Classes="divider" />
+          <Border Classes="innerCard" Padding="12">
+            <StackPanel Spacing="4">
+              <TextBlock Text="Алгоритмы и структуры данных" Classes="caption" FontWeight="SemiBold" />
+              <TextBlock Text="{Binding VersionText}" Classes="caption" FontSize="10" />
+              <TextBlock Text="Светлая тема · русский интерфейс" Classes="caption" FontSize="10" />
             </StackPanel>
-          </Grid>
-        </Button>
-      </StackPanel>
+          </Border>
+        </StackPanel>
+      </Grid>
     </Border>
 
     <Grid Grid.Column="1" RowDefinitions="Auto,*" Margin="30,24,54,24">

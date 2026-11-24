@@ -21,6 +21,9 @@ public static class ChartPalette
     public static readonly IBrush Quick = new SolidColorBrush(Color.Parse("#2563EB"));
     public static readonly IBrush Radix = new SolidColorBrush(Color.Parse("#0F766E"));
     public static readonly IBrush AccentSoft = new SolidColorBrush(Color.Parse("#EFF6FF"));
+    public static readonly IBrush Range = new SolidColorBrush(Color.Parse("#BFDBFE"));
+    public static readonly IBrush LeftRange = new SolidColorBrush(Color.Parse("#7DD3FC"));
+    public static readonly IBrush RightRange = new SolidColorBrush(Color.Parse("#5EEAD4"));
 
     public static IBrush ForBar(BarState state) => state switch
     {
@@ -29,6 +32,9 @@ public static class ChartPalette
         BarState.Sorted => Sorted,
         BarState.Excluded => Excluded,
         BarState.Result => Result,
+        BarState.Range => Range,
+        BarState.LeftRange => LeftRange,
+        BarState.RightRange => RightRange,
         _ => Normal
     };
 
@@ -40,6 +46,9 @@ public static class ChartPalette
         RowHighlight.Excluded => Excluded,
         RowHighlight.Sorted => Sorted,
         RowHighlight.Written => Result,
+        RowHighlight.Range => Range,
+        RowHighlight.LeftRange => LeftRange,
+        RowHighlight.RightRange => RightRange,
         _ => Normal
     };
 }

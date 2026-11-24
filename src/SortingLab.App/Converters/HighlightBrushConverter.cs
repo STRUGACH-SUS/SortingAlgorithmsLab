@@ -14,6 +14,9 @@ public sealed class HighlightBrushConverter : IValueConverter
     private static readonly IBrush Excluded = new SolidColorBrush(Color.Parse("#F1F5F9"));
     private static readonly IBrush Sorted = new SolidColorBrush(Color.Parse("#ECFDF5"));
     private static readonly IBrush Written = new SolidColorBrush(Color.Parse("#F0FDFA"));
+    private static readonly IBrush Range = new SolidColorBrush(Color.Parse("#EFF6FF"));
+    private static readonly IBrush LeftRange = new SolidColorBrush(Color.Parse("#E0F2FE"));
+    private static readonly IBrush RightRange = new SolidColorBrush(Color.Parse("#CCFBF1"));
 
     public object Convert(object? value, Type targetType, object? parameter, CultureInfo culture) =>
         value is RowHighlight state
@@ -25,6 +28,9 @@ public sealed class HighlightBrushConverter : IValueConverter
                 RowHighlight.Excluded => Excluded,
                 RowHighlight.Sorted => Sorted,
                 RowHighlight.Written => Written,
+                RowHighlight.Range => Range,
+                RowHighlight.LeftRange => LeftRange,
+                RowHighlight.RightRange => RightRange,
                 _ => Transparent
             }
             : Transparent;

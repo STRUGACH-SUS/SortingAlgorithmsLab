@@ -46,6 +46,9 @@ public sealed partial class InternalSortViewModel : ObservableObject
     private bool _isGnome;
 
     [ObservableProperty]
+    private bool _isMerge;
+
+    [ObservableProperty]
     private int _selectedVisualizationTab;
 
     [ObservableProperty]
@@ -53,6 +56,12 @@ public sealed partial class InternalSortViewModel : ObservableObject
 
     [ObservableProperty]
     private bool _isVisualStateVisible;
+
+    [ObservableProperty]
+    private string _resultPanelTitle = "Результат";
+
+    [ObservableProperty]
+    private MergeLevelsSnapshot? _mergeLevels;
 
     [ObservableProperty]
     private TournamentSnapshot? _tournament;
@@ -77,11 +86,13 @@ public sealed partial class InternalSortViewModel : ObservableObject
         var oddEven = new OddEvenSort();
         var tournament = new TournamentSort();
         var gnome = new GnomeSort();
+        var merge = new MergeSort();
         Algorithms = new ObservableCollection<AlgorithmChoice>
         {
             new(oddEven, oddEven.Descriptor),
             new(tournament, tournament.Descriptor),
-            new(gnome, gnome.Descriptor)
+            new(gnome, gnome.Descriptor),
+            new(merge, merge.Descriptor)
         };
 
         _selectedAlgorithm = Algorithms[0];
@@ -116,9 +127,11 @@ public sealed partial class InternalSortViewModel : ObservableObject
 
     public string InputHint => IsTournament
         ? "Tournament Sort переносит минимумы в отдельный результирующий массив."
-        : IsGnome
-            ? "Gnome Sort идёт по массиву и возвращается назад, пока соседние элементы стоят неправильно."
-            : "Odd-Even Sort переставляет соседние элементы, пока массив не станет упорядоченным.";
+        : IsMerge
+            ? "Merge Sort рекурсивно делит массив на части, а затем сливает их в отсортированные участки."
+            : IsGnome
+                ? "Gnome Sort идёт по массиву и возвращается назад, пока соседние элементы стоят неправильно."
+                : "Odd-Even Sort переставляет соседние элементы, пока массив не станет упорядоченным.";
 
     [RelayCommand]
     private void Generate()
@@ -214,7 +227,9 @@ public sealed partial class InternalSortViewModel : ObservableObject
         ResultBars.Clear();
         ResultCells.Clear();
         Tournament = null;
+        MergeLevels = null;
         HasResult = false;
+        ResultPanelTitle = "Результат";
         SortedArrayText = string.Empty;
         VisualStateText = string.Empty;
         IsVisualStateVisible = false;
@@ -319,6 +334,100 @@ public sealed partial class InternalSortViewModel : ObservableObject
                 ApplyTreeStates(step.Tournament);
                 break;
 
+            case ArrayStepKind.Split:
+                MergeLevels = step.MergeLevels;
+                ClearHighlights();
+                if (step.RangeStart is { } splitStart && step.RangeEnd is { } splitEnd)
+                {
+                    MarkRange(splitStart, splitEnd, BarState.Range, RowHighlight.Range, preserveSorted: true);
+                    VisualStateText = $"Разделение: {splitStart}–{splitEnd}";
+                    IsVisualStateVisible = true;
+                }
+
+                break;
+
+            case ArrayStepKind.MergeLeaf:
+                MergeLevels = step.MergeLevels;
+                ClearHighlights();
+                if (step.RangeStart is { } leafStart && step.RangeEnd is { } leafEnd)
+                {
+                    MarkRange(leafStart, leafEnd, BarState.Sorted, RowHighlight.Sorted, preserveSorted: false);
+                    VisualStateText = $"Часть {leafStart}–{leafEnd} отсортирована";
+                    IsVisualStateVisible = true;
+                }
+
+                break;
+
+            case ArrayStepKind.MergeStart:
+                MergeLevels = step.MergeLevels;
+                ClearHighlights();
+                ResultBars.Clear();
+                ResultCells.Clear();
+                if (step.RangeStart is { } mergeStart && step.RangeMid is { } mergeMid && step.RangeEnd is { } mergeEnd)
+                {
+                    MarkRange(mergeStart, mergeMid, BarState.LeftRange, RowHighlight.LeftRange, preserveSorted: false);
+                    MarkRange(mergeMid + 1, mergeEnd, BarState.RightRange, RowHighlight.RightRange, preserveSorted: false);
+                    VisualStateText = $"Слияние: {mergeStart}–{mergeMid} + {mergeMid + 1}–{mergeEnd}";
+                    IsVisualStateVisible = true;
+                    ResultPanelTitle = "Буфер слияния";
+                    HasResult = true;
+                }
+
+                break;
+
+            case ArrayStepKind.MergeSelect:
+                ClearHighlights();
+                foreach (var index in step.Indices)
+                {
+                    SetBarState(index, BarState.Active);
+                    SetCellState(index, RowHighlight.Active);
+                }
+
+                break;
+
+            case ArrayStepKind.MergeWrite:
+                ClearHighlights();
+                if (step.ResultIndex is not null && step.ResultValue is not null)
+                {
+                    WriteResult(step.ResultIndex.Value, step.ResultValue.Value);
+                }
+
+                foreach (var index in step.Indices)
+                {
+                    SetBarState(index, BarState.Active);
+                    SetCellState(index, RowHighlight.Active);
+                }
+
+                ResultPanelTitle = "Буфер слияния";
+                HasResult = true;
+                break;
+
+            case ArrayStepKind.MergeCopyBack:
+                ClearHighlights();
+                if (step.ResultIndex is { } targetIndex && step.ResultValue is { } targetValue)
+                {
+                    SetArrayValue(targetIndex, targetValue);
+                    SetBarState(targetIndex, BarState.Active);
+                    SetCellState(targetIndex, RowHighlight.Written);
+                    VisualStateText = $"Возврат в массив: позиция {targetIndex}";
+                    IsVisualStateVisible = true;
+                }
+
+                break;
+
+            case ArrayStepKind.MergeComplete:
+                MergeLevels = step.MergeLevels;
+                ClearHighlights();
+                if (step.RangeStart is { } completeStart && step.RangeEnd is { } completeEnd)
+                {
+                    MarkRange(completeStart, completeEnd, BarState.Sorted, RowHighlight.Sorted, preserveSorted: false);
+                    VisualStateText = $"Слияние {completeStart}–{completeEnd} завершено";
+                    IsVisualStateVisible = true;
+                    ResultPanelTitle = "Результат слияния";
+                }
+
+                break;
+
             case ArrayStepKind.Phase:
             case ArrayStepKind.PassCompleted:
                 ClearHighlights();
@@ -326,11 +435,12 @@ public sealed partial class InternalSortViewModel : ObservableObject
 
             case ArrayStepKind.Completed when step.Snapshot is not null:
                 SortedArrayText = FormatArray(step.Snapshot);
-                if (IsGnome)
+                if (IsGnome || IsMerge)
                 {
                     VisualStateText = "Массив отсортирован";
                     IsVisualStateVisible = true;
                 }
+
                 if (IsTournament)
                 {
                     ResultBars.Clear();
@@ -342,10 +452,28 @@ public sealed partial class InternalSortViewModel : ObservableObject
                     }
 
                     HasResult = true;
+                    ResultPanelTitle = "Результат Tournament Sort";
                     foreach (var cell in Cells)
                     {
                         cell.State = cell.State == RowHighlight.Excluded ? RowHighlight.Excluded : RowHighlight.Sorted;
                     }
+                }
+                else if (IsMerge)
+                {
+                    Bars.Clear();
+                    Cells.Clear();
+                    ResultBars.Clear();
+                    ResultCells.Clear();
+                    for (var index = 0; index < step.Snapshot.Length; index++)
+                    {
+                        Bars.Add(new BarDatum(step.Snapshot[index], BarState.Sorted, index));
+                        Cells.Add(new ArrayCellViewModel(index, step.Snapshot[index], RowHighlight.Sorted));
+                        ResultBars.Add(new BarDatum(step.Snapshot[index], BarState.Result, index));
+                        ResultCells.Add(new ArrayCellViewModel(index, step.Snapshot[index], RowHighlight.Sorted));
+                    }
+
+                    HasResult = true;
+                    ResultPanelTitle = "Отсортированный массив";
                 }
                 else
                 {
@@ -468,6 +596,41 @@ public sealed partial class InternalSortViewModel : ObservableObject
         }
     }
 
+    private void MarkRange(
+        int start,
+        int end,
+        BarState barState,
+        RowHighlight cellState,
+        bool preserveSorted)
+    {
+        start = Math.Max(0, start);
+        end = Math.Min(Bars.Count - 1, end);
+        for (var index = start; index <= end; index++)
+        {
+            if (preserveSorted && Bars[index].State == BarState.Sorted)
+            {
+                continue;
+            }
+
+            SetBarState(index, barState);
+            SetCellState(index, cellState);
+        }
+    }
+
+    private void SetArrayValue(int index, int value)
+    {
+        if (index < 0 || index >= Bars.Count)
+        {
+            return;
+        }
+
+        Bars[index] = Bars[index] with { Value = value };
+        if (index < Cells.Count)
+        {
+            Cells[index].Value = value;
+        }
+    }
+
     private DemonstrationStream CreateStream(CancellationToken cancellationToken)
     {
         var algorithm = SelectedAlgorithm?.Algorithm ?? new OddEvenSort();
@@ -520,7 +683,9 @@ public sealed partial class InternalSortViewModel : ObservableObject
     {
         IsTournament = value?.Descriptor.Id == "tournament";
         IsGnome = value?.Descriptor.Id == "gnome";
+        IsMerge = value?.Descriptor.Id == "merge";
         SelectedVisualizationTab = 0;
+        ResultPanelTitle = IsTournament ? "Результат Tournament Sort" : "Результат";
         OnPropertyChanged(nameof(AlgorithmInfo));
         OnPropertyChanged(nameof(InputHint));
         if (Playback.State != DemoPlaybackState.Idle)

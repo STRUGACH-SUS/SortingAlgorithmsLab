@@ -10,11 +10,6 @@ public sealed record AlgorithmChoice(IArraySortAlgorithm Algorithm, AlgorithmDes
     public string Name => Descriptor.Name;
 }
 
-public sealed record ExternalAlgorithmChoice(IExternalSortAlgorithm Algorithm, AlgorithmDescriptor Descriptor)
-{
-    public string Name => Descriptor.Name;
-}
-
 public sealed record TextAlgorithmChoice(ITextSortAlgorithm Algorithm, AlgorithmDescriptor Descriptor)
 {
     public string Name => Descriptor.Name;

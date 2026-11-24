@@ -54,6 +54,129 @@ public sealed class ArraySortContext
         }, cancellationToken);
     }
 
+    public ValueTask SplitAsync(
+        int start,
+        int mid,
+        int end,
+        MergeLevelsSnapshot levels,
+        string explanation,
+        CancellationToken cancellationToken = default) =>
+        EmitAsync(new ArraySortStep
+        {
+            Kind = ArrayStepKind.Split,
+            Title = "Разделение диапазона",
+            Explanation = explanation,
+            RangeStart = start,
+            RangeMid = mid,
+            RangeEnd = end,
+            MergeLevels = levels
+        }, cancellationToken);
+
+    public ValueTask MergeLeafAsync(
+        int index,
+        MergeLevelsSnapshot levels,
+        string explanation,
+        CancellationToken cancellationToken = default) =>
+        EmitAsync(new ArraySortStep
+        {
+            Kind = ArrayStepKind.MergeLeaf,
+            Title = "Часть уже отсортирована",
+            Explanation = explanation,
+            RangeStart = index,
+            RangeEnd = index,
+            MergeLevels = levels
+        }, cancellationToken);
+
+    public ValueTask MergeStartAsync(
+        int start,
+        int mid,
+        int end,
+        MergeLevelsSnapshot levels,
+        string explanation,
+        CancellationToken cancellationToken = default) =>
+        EmitAsync(new ArraySortStep
+        {
+            Kind = ArrayStepKind.MergeStart,
+            Title = "Начало слияния",
+            Explanation = explanation,
+            RangeStart = start,
+            RangeMid = mid,
+            RangeEnd = end,
+            MergeLevels = levels
+        }, cancellationToken);
+
+    public ValueTask MergeSelectAsync(
+        int sourceIndex,
+        int value,
+        string explanation,
+        CancellationToken cancellationToken = default) =>
+        EmitAsync(new ArraySortStep
+        {
+            Kind = ArrayStepKind.MergeSelect,
+            Title = "Выбор элемента",
+            Explanation = explanation,
+            Indices = new[] { sourceIndex },
+            Values = new[] { value }
+        }, cancellationToken);
+
+    public ValueTask MergeWriteAsync(
+        int bufferIndex,
+        int sourceIndex,
+        int value,
+        string explanation,
+        CancellationToken cancellationToken = default)
+    {
+        _statistics.Moves++;
+        return EmitAsync(new ArraySortStep
+        {
+            Kind = ArrayStepKind.MergeWrite,
+            Title = "Запись в буфер слияния",
+            Explanation = explanation,
+            Indices = new[] { sourceIndex },
+            Values = new[] { value },
+            ResultIndex = bufferIndex,
+            ResultValue = value
+        }, cancellationToken);
+    }
+
+    public ValueTask MergeCopyBackAsync(
+        int targetIndex,
+        int value,
+        string explanation,
+        CancellationToken cancellationToken = default)
+    {
+        _statistics.Moves++;
+        Values[targetIndex] = value;
+        return EmitAsync(new ArraySortStep
+        {
+            Kind = ArrayStepKind.MergeCopyBack,
+            Title = "Возврат элемента в массив",
+            Explanation = explanation,
+            Indices = new[] { targetIndex },
+            Values = new[] { value },
+            ResultIndex = targetIndex,
+            ResultValue = value
+        }, cancellationToken);
+    }
+
+    public ValueTask MergeCompleteAsync(
+        int start,
+        int mid,
+        int end,
+        MergeLevelsSnapshot levels,
+        string explanation,
+        CancellationToken cancellationToken = default) =>
+        EmitAsync(new ArraySortStep
+        {
+            Kind = ArrayStepKind.MergeComplete,
+            Title = "Слияние завершено",
+            Explanation = explanation,
+            RangeStart = start,
+            RangeMid = mid,
+            RangeEnd = end,
+            MergeLevels = levels
+        }, cancellationToken);
+
     public ValueTask CompareAsync(
         int leftIndex,
         int rightIndex,

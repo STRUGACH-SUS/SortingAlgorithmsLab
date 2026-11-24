@@ -124,6 +124,16 @@
                   <Border Width="9" Height="9" CornerRadius="2" Background="#0F766E" />
                   <TextBlock Text="готово" Classes="caption" FontSize="10" />
                 </StackPanel>
+                <StackPanel Orientation="Horizontal" Spacing="4" Margin="8,0,0,0"
+                            IsVisible="{Binding IsMerge}">
+                  <Border Width="9" Height="9" CornerRadius="2" Background="#7DD3FC" />
+                  <TextBlock Text="левая часть" Classes="caption" FontSize="10" />
+                </StackPanel>
+                <StackPanel Orientation="Horizontal" Spacing="4" Margin="8,0,0,0"
+                            IsVisible="{Binding IsMerge}">
+                  <Border Width="9" Height="9" CornerRadius="2" Background="#5EEAD4" />
+                  <TextBlock Text="правая часть" Classes="caption" FontSize="10" />
+                </StackPanel>
               </WrapPanel>
             </Grid>
 
@@ -138,7 +148,7 @@
                           Padding="10"
                           IsVisible="{Binding HasResult}">
                     <StackPanel Spacing="4">
-                      <TextBlock Text="Результат Tournament Sort" Classes="caption" FontWeight="SemiBold" />
+                      <TextBlock Text="{Binding ResultPanelTitle}" Classes="caption" FontWeight="SemiBold" />
                       <charts:ArrayBarChart ItemsSource="{Binding ResultBars}"
                                             Revision="{Binding VisualRevision}"
                                             Height="90" />
@@ -153,6 +163,14 @@
                   </Viewbox>
                   <TextBlock Grid.Row="1"
                              Text="В узлах — индексы победителей; под листьями — значения элементов."
+                             Classes="caption" />
+                </Grid>
+              </TabItem>
+              <TabItem Header="Уровни слияния" IsVisible="{Binding IsMerge}">
+                <Grid RowDefinitions="*,Auto" RowSpacing="4">
+                  <charts:MergeLevelsControl Snapshot="{Binding MergeLevels}" MinHeight="235" />
+                  <TextBlock Grid.Row="1"
+                             Text="Жёлтые диапазоны делятся, синие — сливаются, зелёные уже отсортированы."
                              Classes="caption" />
                 </Grid>
               </TabItem>

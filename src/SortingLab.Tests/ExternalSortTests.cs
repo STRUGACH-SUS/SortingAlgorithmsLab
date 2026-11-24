@@ -239,65 +239,6 @@ public sealed class ExternalSortTests
         }
     }
 
-    [Fact]
-    public async Task ExternalMergeSort_CreatesOneElementRunsAndSorts()
-    {
-        var table = CreateTable(new[]
-        {
-            (1, "Альфа", 10), (2, "Бета", 20), (3, "Гамма", 30), (4, "Дельта", 40), (5, "Эпсилон", 50)
-        });
-
-        var (result, steps, root) = await RunAsync(
-            table,
-            new SortKey(2, SortKeyType.Integer, SortDirection.Ascending),
-            new ExternalMergeSorter());
-        try
-        {
-            Assert.Equal(5, result.InitialRunCount);
-            Assert.True(result.PassCount > 0);
-            Assert.Equal(new[] { 1, 2, 3, 4, 5 }, result.SortedRecords.Select(record => record.Id));
-            Assert.Contains(steps, step =>
-                step.Kind == ExternalStepKind.RunDetected &&
-                step.Explanation.Contains("из одного элемента", StringComparison.Ordinal));
-            Assert.False(Directory.Exists(result.TempDirectory));
-        }
-        finally
-        {
-            Directory.Delete(root, true);
-        }
-    }
-
-    [Fact]
-    public async Task ExternalMergeSort_IsStableForEqualKeys()
-    {
-        var table = CreateTable(new[]
-        {
-            (1, "Первый", 1), (2, "Второй", 2), (3, "Третий", 1), (4, "Четвёртый", 2)
-        });
-
-        var (result, _, root) = await RunAsync(
-            table,
-            new SortKey(2, SortKeyType.Integer, SortDirection.Ascending),
-            new ExternalMergeSorter());
-        try
-        {
-            Assert.Equal(new[] { 1, 3, 2, 4 }, result.SortedRecords.Select(record => record.Id));
-        }
-        finally
-        {
-            Directory.Delete(root, true);
-        }
-    }
-
-    [Fact]
-    public void ExternalAlgorithmsHaveDistinctDescriptors()
-    {
-        Assert.NotEqual(
-            new NaturalMergeSorter().Descriptor.Id,
-            new ExternalMergeSorter().Descriptor.Id);
-        Assert.Equal("external-merge", new ExternalMergeSorter().Descriptor.Id);
-    }
-
     private static CsvTable CreateTable(
         IEnumerable<(int Id, string Name, int Population)> rows,
         IReadOnlyList<string>? areas = null)
@@ -321,12 +262,11 @@ public sealed class ExternalSortTests
 
     private static async Task<(ExternalSortResult Result, IReadOnlyList<ExternalSortStep> Steps, string Root)> RunAsync(
         CsvTable table,
-        SortKey key,
-        IExternalSortAlgorithm? algorithm = null)
+        SortKey key)
     {
         var root = CreateRoot();
         var sink = new CollectingStepSink<ExternalSortStep>();
-        var result = await (algorithm ?? new NaturalMergeSorter()).SortAsync(
+        var result = await new NaturalMergeSorter().SortAsync(
             new ExternalSortRequest(table.Headers, table.Records, key, root),
             sink);
         return (result, sink.Steps, root);

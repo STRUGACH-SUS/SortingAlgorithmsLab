@@ -27,6 +27,9 @@ public sealed partial class ArrayCellViewModel : ObservableObject
         RowHighlight.Excluded => "Исключён",
         RowHighlight.Sorted => "Готово",
         RowHighlight.Written => "Записан",
+        RowHighlight.Range => "Текущий диапазон",
+        RowHighlight.LeftRange => "Левая часть",
+        RowHighlight.RightRange => "Правая часть",
         _ => "—"
     };
 
