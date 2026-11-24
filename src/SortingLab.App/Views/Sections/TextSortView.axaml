@@ -164,7 +164,7 @@
       </controls:ResponsiveTwoColumnPanel>
 
       <Border Classes="card" Padding="16">
-        <Grid RowDefinitions="Auto,Auto,*" RowSpacing="8">
+        <Grid RowDefinitions="Auto,Auto,*" RowSpacing="12">
           <Grid ColumnDefinitions="*,Auto">
             <StackPanel Spacing="2">
               <TextBlock Text="Частота слов" Classes="h3" />
@@ -174,14 +174,17 @@
             <TextBlock Grid.Column="1" Text="{Binding SearchSummary}" Classes="caption" VerticalAlignment="Top" />
           </Grid>
 
-          <Grid ColumnDefinitions="340,*" ColumnSpacing="10">
-            <TextBox Text="{Binding SearchText}" Watermark="Поиск по словам…" />
-            <TextBlock Grid.Column="1"
-                       Text="{Binding UniqueWordsText, StringFormat=Уникальных слов: {0}}"
-                       Classes="caption"
-                       VerticalAlignment="Center"
-                       HorizontalAlignment="Right" />
-          </Grid>
+          <StackPanel Grid.Row="1" Spacing="5">
+            <TextBlock Text="Поиск по словам" Classes="fieldLabel" />
+            <Grid ColumnDefinitions="340,*" ColumnSpacing="10">
+              <TextBox Text="{Binding SearchText}" Watermark="Введите слово или часть слова…" />
+              <TextBlock Grid.Column="1"
+                         Text="{Binding UniqueWordsText, StringFormat=Уникальных слов: {0}}"
+                         Classes="caption"
+                         VerticalAlignment="Center"
+                         HorizontalAlignment="Right" />
+            </Grid>
+          </StackPanel>
 
           <DataGrid Grid.Row="2"
                     ItemsSource="{Binding Frequencies}"

@@ -21,6 +21,7 @@ public sealed record TournamentSnapshot(
 public enum ArrayStepKind
 {
     Initial,
+    Position,
     Compare,
     Swap,
     Select,
@@ -47,6 +48,8 @@ public sealed record ArraySortStep : DemoStep
 
     public int? ResultValue { get; init; }
 
+    public int? PositionIndex { get; init; }
+
     public override bool IsInitial => Kind == ArrayStepKind.Initial;
 
     public override bool IsCompleted => Kind == ArrayStepKind.Completed;
@@ -54,6 +57,7 @@ public sealed record ArraySortStep : DemoStep
     public override string KindLabel => Kind switch
     {
         ArrayStepKind.Initial => "Исходные данные",
+        ArrayStepKind.Position => "Текущая позиция",
         ArrayStepKind.Compare => "Сравнение",
         ArrayStepKind.Swap => "Перестановка",
         ArrayStepKind.Select => "Выбор минимума",
@@ -77,6 +81,13 @@ public sealed record ArraySortStep : DemoStep
             if (Kind == ArrayStepKind.Completed)
             {
                 return Snapshot is null ? string.Empty : $"Элементов: {Snapshot.Length}";
+            }
+
+            if (Kind == ArrayStepKind.Position && PositionIndex is not null)
+            {
+                return PositionIndex < 0
+                    ? "Начало массива"
+                    : $"Позиция: {PositionIndex}";
             }
 
             if (Kind == ArrayStepKind.Write && ResultIndex is not null && ResultValue is not null)

@@ -18,7 +18,8 @@
       <DataGrid x:Name="LogGrid"
                 Grid.Row="1"
                 ItemsSource="{Binding Items, ElementName=Root}"
-                MinHeight="120"
+                Height="380"
+                Margin="0,2,0,0"
                 Background="Transparent">
         <DataGrid.Columns>
           <DataGridTextColumn Header="№" Binding="{Binding Number}" Width="54" />

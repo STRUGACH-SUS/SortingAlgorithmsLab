@@ -37,6 +37,23 @@ public sealed class ArraySortContext
             Snapshot = (int[])Values.Clone()
         }, cancellationToken);
 
+    public ValueTask PositionAsync(
+        int position,
+        string explanation,
+        CancellationToken cancellationToken = default)
+    {
+        var hasValue = position >= 0 && position < Values.Length;
+        return EmitAsync(new ArraySortStep
+        {
+            Kind = ArrayStepKind.Position,
+            Title = "Текущая позиция",
+            Explanation = explanation,
+            PositionIndex = position,
+            Indices = hasValue ? new[] { position } : Array.Empty<int>(),
+            Values = hasValue ? new[] { Values[position] } : Array.Empty<int>()
+        }, cancellationToken);
+    }
+
     public ValueTask CompareAsync(
         int leftIndex,
         int rightIndex,

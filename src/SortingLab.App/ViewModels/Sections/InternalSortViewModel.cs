@@ -43,6 +43,18 @@ public sealed partial class InternalSortViewModel : ObservableObject
     private bool _isTournament;
 
     [ObservableProperty]
+    private bool _isGnome;
+
+    [ObservableProperty]
+    private int _selectedVisualizationTab;
+
+    [ObservableProperty]
+    private string _visualStateText = string.Empty;
+
+    [ObservableProperty]
+    private bool _isVisualStateVisible;
+
+    [ObservableProperty]
     private TournamentSnapshot? _tournament;
 
     [ObservableProperty]
@@ -64,10 +76,12 @@ public sealed partial class InternalSortViewModel : ObservableObject
     {
         var oddEven = new OddEvenSort();
         var tournament = new TournamentSort();
+        var gnome = new GnomeSort();
         Algorithms = new ObservableCollection<AlgorithmChoice>
         {
             new(oddEven, oddEven.Descriptor),
-            new(tournament, tournament.Descriptor)
+            new(tournament, tournament.Descriptor),
+            new(gnome, gnome.Descriptor)
         };
 
         _selectedAlgorithm = Algorithms[0];
@@ -102,7 +116,9 @@ public sealed partial class InternalSortViewModel : ObservableObject
 
     public string InputHint => IsTournament
         ? "Tournament Sort переносит минимумы в отдельный результирующий массив."
-        : "Odd-Even Sort переставляет соседние элементы, пока массив не станет упорядоченным.";
+        : IsGnome
+            ? "Gnome Sort идёт по массиву и возвращается назад, пока соседние элементы стоят неправильно."
+            : "Odd-Even Sort переставляет соседние элементы, пока массив не станет упорядоченным.";
 
     [RelayCommand]
     private void Generate()
@@ -200,6 +216,8 @@ public sealed partial class InternalSortViewModel : ObservableObject
         Tournament = null;
         HasResult = false;
         SortedArrayText = string.Empty;
+        VisualStateText = string.Empty;
+        IsVisualStateVisible = false;
 
         for (var index = 0; index < _input.Length; index++)
         {
@@ -226,6 +244,21 @@ public sealed partial class InternalSortViewModel : ObservableObject
             case ArrayStepKind.Initial when step.Snapshot is not null:
                 _input = (int[])step.Snapshot.Clone();
                 ResetVisuals();
+                break;
+
+            case ArrayStepKind.Position:
+                ClearHighlights();
+                if (step.PositionIndex is { } position)
+                {
+                    VisualStateText = position < 0 ? "Начало массива" : $"Позиция: {position}";
+                    IsVisualStateVisible = true;
+                    if (position >= 0 && position < Bars.Count)
+                    {
+                        SetBarState(position, BarState.Active);
+                        SetCellState(position, RowHighlight.Active);
+                    }
+                }
+
                 break;
 
             case ArrayStepKind.Compare:
@@ -293,6 +326,11 @@ public sealed partial class InternalSortViewModel : ObservableObject
 
             case ArrayStepKind.Completed when step.Snapshot is not null:
                 SortedArrayText = FormatArray(step.Snapshot);
+                if (IsGnome)
+                {
+                    VisualStateText = "Массив отсортирован";
+                    IsVisualStateVisible = true;
+                }
                 if (IsTournament)
                 {
                     ResultBars.Clear();
@@ -481,6 +519,8 @@ public sealed partial class InternalSortViewModel : ObservableObject
     partial void OnSelectedAlgorithmChanged(AlgorithmChoice? value)
     {
         IsTournament = value?.Descriptor.Id == "tournament";
+        IsGnome = value?.Descriptor.Id == "gnome";
+        SelectedVisualizationTab = 0;
         OnPropertyChanged(nameof(AlgorithmInfo));
         OnPropertyChanged(nameof(InputHint));
         if (Playback.State != DemoPlaybackState.Idle)

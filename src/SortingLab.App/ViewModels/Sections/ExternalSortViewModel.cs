@@ -25,6 +25,9 @@ public sealed partial class ExternalSortViewModel : ObservableObject
     private bool _suppressFilter;
 
     [ObservableProperty]
+    private ExternalAlgorithmChoice? _selectedAlgorithm;
+
+    [ObservableProperty]
     private ColumnOption? _selectedColumn;
 
     [ObservableProperty]
@@ -104,10 +107,21 @@ public sealed partial class ExternalSortViewModel : ObservableObject
             new(SortDirection.Ascending, "По возрастанию"),
             new(SortDirection.Descending, "По убыванию")
         };
+        var natural = new NaturalMergeSorter();
+        var external = new ExternalMergeSorter();
+        Algorithms = new ObservableCollection<ExternalAlgorithmChoice>
+        {
+            new(natural, natural.Descriptor),
+            new(external, external.Descriptor)
+        };
+        _selectedAlgorithm = Algorithms[0];
         SelectedKeyType = KeyTypes[0];
         SelectedDirection = Directions[0];
 
-        Playback = new PlaybackViewModel();
+        Playback = new PlaybackViewModel
+        {
+            StepDelayMilliseconds = 20
+        };
         Playback.PropertyChanged += OnPlaybackPropertyChanged;
         Playback.Configure(
             CreateStream,
@@ -129,13 +143,24 @@ public sealed partial class ExternalSortViewModel : ObservableObject
 
     public ObservableCollection<ColumnOption> Columns { get; } = new();
 
+    public ObservableCollection<ExternalAlgorithmChoice> Algorithms { get; }
+
     public ObservableCollection<KeyTypeOption> KeyTypes { get; }
 
     public ObservableCollection<DirectionOption> Directions { get; }
 
     public PlaybackViewModel Playback { get; }
 
-    public AlgorithmDescriptor AlgorithmInfo => new NaturalMergeSorter().Descriptor;
+    public AlgorithmDescriptor AlgorithmInfo =>
+        SelectedAlgorithm?.Descriptor ?? NaturalMergeSorter.NaturalDescriptor;
+
+    public string AlgorithmHint => SelectedAlgorithm?.Descriptor.Id == "external-merge"
+        ? "External Merge Sort принудительно делит файл на серии по одному элементу и сливает их попарно."
+        : "Natural Merge Sort находит уже упорядоченные серии и сливает их попарно.";
+
+    public string SeriesTitle => SelectedAlgorithm?.Descriptor.Id == "external-merge"
+        ? "Начальные серии"
+        : "Естественные серии";
 
     public IReadOnlyList<string> Headers => _filteredTable?.Headers ?? Array.Empty<string>();
 
@@ -654,12 +679,13 @@ public sealed partial class ExternalSortViewModel : ObservableObject
             SelectedKeyType?.Value ?? SortKeyType.Text,
             SelectedDirection?.Value ?? SortDirection.Ascending);
         var channel = new StepChannel<ExternalSortStep>();
+        var algorithm = SelectedAlgorithm?.Algorithm ?? new NaturalMergeSorter();
         var completion = Task.Run(async () =>
         {
             try
             {
                 _lastSortedRecords = null;
-                var result = await new NaturalMergeSorter().SortAsync(
+                var result = await algorithm.SortAsync(
                     new ExternalSortRequest(table.Headers, table.Records, key),
                     channel,
                     cancellationToken);
@@ -684,6 +710,11 @@ public sealed partial class ExternalSortViewModel : ObservableObject
         if (_filteredTable is null)
         {
             return "Сначала загрузите таблицу.";
+        }
+
+        if (SelectedAlgorithm is null)
+        {
+            return "Выберите алгоритм внешней сортировки.";
         }
 
         if (SelectedColumn is null || SelectedColumn.Index < 0 || SelectedColumn.Index >= _filteredTable.Headers.Count)
@@ -718,6 +749,21 @@ public sealed partial class ExternalSortViewModel : ObservableObject
     private bool CanSaveResult() => HasResult && _lastSortedRecords is { Count: > 0 };
 
     private bool CanOpenFolder() => HasResultPath;
+
+    partial void OnSelectedAlgorithmChanged(ExternalAlgorithmChoice? value)
+    {
+        OnPropertyChanged(nameof(AlgorithmInfo));
+        OnPropertyChanged(nameof(AlgorithmHint));
+        OnPropertyChanged(nameof(SeriesTitle));
+        if (Playback.State != DemoPlaybackState.Idle)
+        {
+            Playback.ResetCommand.Execute(null);
+        }
+        else
+        {
+            ResetVisuals();
+        }
+    }
 
     partial void OnSelectedContinentChanged(string value)
     {
